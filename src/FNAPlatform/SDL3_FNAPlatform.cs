@@ -414,7 +414,7 @@ namespace Microsoft.Xna.Framework
 			INTERNAL_SetIcon(sdlWindow, title);
 
 			// Disable the screensaver.
-			SDL.SDL_DisableScreenSaver();
+			INTERNAL_DisableScreenSaver();
 
 			// We hide the mouse cursor by default.
 			OnIsMouseVisibleChanged(false);
@@ -667,6 +667,26 @@ namespace Microsoft.Xna.Framework
 		public static bool IsScreenKeyboardShown(IntPtr window)
 		{
 			return SDL.SDL_ScreenKeyboardShown(WrapWindow(window));
+		}
+
+		/* FNA_ALLOW_SCREENSAVER lets the host keep the screensaver available
+		 * even while the window is focused. It is read on every call rather
+		 * than cached, so it can be flipped at runtime with SDL_SetHint (or
+		 * set up front as an environment variable).
+		 *
+		 * Re-enabling right after an unwanted disable is not the same thing:
+		 * each disable/enable pair is a D-Bus Inhibit/UnInhibit, and idle
+		 * daemons such as hypridle restart their idle timers whenever their
+		 * inhibitor count returns to zero, so a stray focus or mouse-enter
+		 * event can keep the desktop awake indefinitely.
+		 * -sitch
+		 */
+		private static void INTERNAL_DisableScreenSaver()
+		{
+			if (!SDL.SDL_GetHintBoolean("FNA_ALLOW_SCREENSAVER", false))
+			{
+				SDL.SDL_DisableScreenSaver();
+			}
 		}
 
 		private static void INTERNAL_SetIcon(IntPtr window, string title)
@@ -1021,7 +1041,7 @@ namespace Microsoft.Xna.Framework
 						}
 
 						// Disable the screensaver when we're back.
-						SDL.SDL_DisableScreenSaver();
+						INTERNAL_DisableScreenSaver();
 					}
 					else if (evt.type == (uint) SDL.SDL_EventType.SDL_EVENT_WINDOW_FOCUS_LOST)
 					{
@@ -1089,7 +1109,7 @@ namespace Microsoft.Xna.Framework
 					// Mouse Focus
 					else if (evt.type == (uint) SDL.SDL_EventType.SDL_EVENT_WINDOW_MOUSE_ENTER)
 					{
-						SDL.SDL_DisableScreenSaver();
+						INTERNAL_DisableScreenSaver();
 					}
 					else if (evt.type == (uint) SDL.SDL_EventType.SDL_EVENT_WINDOW_MOUSE_LEAVE)
 					{
